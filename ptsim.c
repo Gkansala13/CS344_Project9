@@ -23,12 +23,14 @@ int get_address(int page, int offset)
 // Initialize RAM
 //
 void initialize_mem(void){
-    for(int i=0; i <= MEM_SIZE; ++i) {   // Zero every byte of physical memory in the mem array.
-        mem[i] = 0;
-    }
+    memset(mem, 0, MEM_SIZE);            // Zero every byte of physical memory in the mem array.
     mem[0] = 1;                          // Mark as 0 page as used/1, it should always be reserved.
 }
 
+void set_page_table_entry(int page_table, int vpage, int page){
+    int pt_addr = get_address(page_table, vpage);
+    mem[pt_addr] = page;
+}
 //
 // Allocate a physical page
 //
@@ -66,8 +68,7 @@ void new_process(int proc_num, int page_count){   // NewProcess(proc_num, page_c
         // Set the page table to map virt -> phys
         // Virtual page number is i
         // Physical page number is new_page
-        int pt_addr = get_address(page_table, i);
-        mem[pt_addr] = new_page;
+        set_page_table_entry(page_table, i, new_page);
     }
 }
 
