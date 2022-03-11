@@ -119,9 +119,52 @@ void print_page_table(int proc_num)
     }
 }
 
+void deallocate_page(int page_number){
+    mem[page_number]=0;                                        //Set the value at address p in zeropage to 0
+}
+
+void kill_process(int process_number){
+    int page_table=get_page_table(process_number);             //Get the page table for this process
+    for (int i=0; i<PAGE_COUNT; i++){                          //Forloop 0-63       
+        int page_address = get_address(page_table, i);         //Converts page, offset into an address(i is offset)
+        if (mem[page_address] != 0){                           //If it's not 0: (meaning that there is something that address)
+            deallocate_page(mem[page_address]);                //Deallocate that page
+        }
+        deallocate_page(page_table);                           //Deallocate the page table page
+    }
+} 
+
+int get_physical_address(int process_number, int virtual_address){
+    int virtual_page = virtual_address >> 8;                   // Get the virtual page
+    int offset = virtual_address & 255;                        // Get the offset
+
+    int page_table = get_page_table(process_number);           // Get the page table for this process
+    int page_table_address = get_address(page_table, virtual_page); // Get the page table address
+    int physical_page = mem[page_table_address];               // Get the physical page from the page table
+
+    int physical_address = get_address(physical_page, offset); // Build the physical address from the phys page and offset
+    return physical_address;                                   // Return it
+}
+
+void store_value(int process_number, int virtual_address, int value){
+    int physical_address = get_physical_address(process_number, virtual_address);
+    mem[physical_address]=value;
+
+    printf("Store proc %d: %d => %d, value=%d\n",
+    process_number, virtual_address, physical_address, value);
+}
+
+void load_value(int process_number, int virtual_address){
+    int physical_address = get_physical_address(process_number, virtual_address);
+    int value = mem[physical_address];
+
+    printf("Load proc %d: %d => %d, value=%d\n",
+    process_number, virtual_address, physical_address, value);
+}
 //
 // Main -- process command line
 //
+
 int main(int argc, char *argv[]){
     assert(PAGE_COUNT * PAGE_SIZE == MEM_SIZE);
 
@@ -144,6 +187,21 @@ int main(int argc, char *argv[]){
         else if (strcmp(argv[i], "ppt") == 0) {
             int proc_num = atoi(argv[++i]);
             print_page_table(proc_num);
+        }
+        else if (strcmp(argv[i], "kp") == 0) {
+            int proc_num = atoi(argv[++i]);
+            kill_process(proc_num);
+        }
+        else if (strcmp(argv[i], "sb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int virt_addr = atoi(argv[++i]);
+            int value = atoi(argv[++i]);
+            store_value(proc_num, virt_addr, value);
+        }
+        else if (strcmp(argv[i], "lb") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int virt_addr = atoi(argv[++i]);
+            load_value(proc_num, virt_addr);
         }
     }
 }
